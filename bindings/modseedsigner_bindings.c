@@ -11,8 +11,8 @@
 #include "seedsigner.h"
 
 #define SEEDSIGNER_RESULT_QUEUE_CAP 16
-// 256 holds a full BIP39 passphrase (spec max) when a text-entry screen
-// reports its result through this queue; also bounds button labels.
+// Result capacity in bytes, including the terminating NUL.
+// Oversized text is rejected, never silently truncated.
 #define SEEDSIGNER_RESULT_LABEL_MAX 256
 
 // What produced a queued result. The Python side reads this as the first
@@ -27,6 +27,7 @@ typedef enum {
 typedef struct {
     seedsigner_result_kind_t kind;
     uint32_t index;
+    bool text_too_long;
     char label[SEEDSIGNER_RESULT_LABEL_MAX];
 } seedsigner_result_event_t;
 
@@ -42,7 +43,10 @@ static void seedsigner_result_enqueue(seedsigner_result_kind_t kind, uint32_t in
         .label = {0},
     };
 
-    if (label) {
+    if (label && kind == SEEDSIGNER_EVENT_TEXT_ENTERED &&
+        strlen(label) >= SEEDSIGNER_RESULT_LABEL_MAX) {
+        ev.text_too_long = true;
+    } else if (label) {
         strncpy(ev.label, label, SEEDSIGNER_RESULT_LABEL_MAX - 1);
         ev.label[SEEDSIGNER_RESULT_LABEL_MAX - 1] = '\0';
     }
@@ -630,6 +634,10 @@ static mp_obj_t mp_seedsigner_lvgl_poll_for_result(void) {
     seedsigner_result_event_t ev = s_result_queue[s_result_head];
     s_result_head = (s_result_head + 1) % SEEDSIGNER_RESULT_QUEUE_CAP;
     s_result_count--;
+
+    if (ev.text_too_long) {
+        mp_raise_ValueError(MP_ERROR_TEXT("text entry exceeds 255 UTF-8 bytes"));
+    }
 
     qstr kind;
     switch (ev.kind) {
