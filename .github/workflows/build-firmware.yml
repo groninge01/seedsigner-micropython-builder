@@ -91,6 +91,8 @@ jobs:
 
   build:
     needs: [resolve-image-owner, build-packs]
+    # PR/manual builds skip language packs; failed dependencies still block builds.
+    if: ${{ !cancelled() && needs.resolve-image-owner.result == 'success' && (needs.build-packs.result == 'success' || needs.build-packs.result == 'skipped') }}
     runs-on: ubuntu-24.04
     # Build every supported ESP32-P4 board. All three are esp32p4 (RISC-V), so
     # they share the toolchain installed below; only the board definition differs.
