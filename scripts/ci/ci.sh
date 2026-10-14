@@ -146,7 +146,7 @@ case "$COMMAND" in
     fi
 
     if [ "$DEST_DIR" = "." ]; then
-      find "$WORK" -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
+      find "$WORK" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
       cp -r "$SOURCE_DIR"/. "$WORK/"
     else
       rm -rf "$WORK/$DEST_DIR"
