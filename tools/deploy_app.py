@@ -43,6 +43,7 @@ source. Pass --source to push raw .py instead.
 import argparse
 import atexit
 import base64
+import hashlib
 import os
 import subprocess
 import sys
@@ -106,7 +107,7 @@ STDLIB_DEPS = []  # logging, hmac now frozen into firmware (was: ["logging", "hm
 # Device-side helpers, defined once in the REPL global namespace and reused
 # across subsequent raw_exec calls (globals persist within one connection).
 DEVICE_HELPERS = r"""
-import os, binascii
+import os, binascii, hashlib
 def _mkdirp(p):
     cur = ''
     for x in p.strip('/').split('/'):
@@ -139,7 +140,14 @@ def _ls(p):
         for e in os.listdir(p):
             _ls(p + '/' + e)
     else:
-        print(p, st[6])
+        h = hashlib.sha256()
+        with open(p, 'rb') as f:
+            while True:
+                chunk = f.read(4096)
+                if not chunk:
+                    break
+                h.update(chunk)
+        print(p, binascii.hexlify(h.digest()).decode())
 print('helpers ready')
 """
 
@@ -294,8 +302,8 @@ def push_tree(ser, local_root, remote_root, label, excl_dirs, excl_suffix,
               compile_mpy=False, mpy_cross=None):
     """Collect the tree, mkdir -p all dirs in few calls, then write files in
     batched raw_exec payloads (the per-call REPL handshake dominates, so packing
-    many small files per call is the win). Records expected sizes into `expected`
-    for a single post-pass verification."""
+    many small files per call is the win). Records expected SHA-256 hashes into
+    `expected` for a single post-pass verification."""
     files, dirs = [], set()
     for dirpath, dirnames, filenames in os.walk(local_root):
         dirnames[:] = [d for d in dirnames if d not in excl_dirs]
@@ -348,12 +356,13 @@ def push_tree(ser, local_root, remote_root, label, excl_dirs, excl_suffix,
             stale_path = rp[:-3] + ".mpy" if is_py else None  # old bytecode, if present
         if stale_path and on_dev and stale_path in on_dev:
             stale.append(stale_path)
-        expected[rp] = len(data)
+        digest = hashlib.sha256(data).hexdigest()
+        expected[rp] = digest
         count += 1
         total += len(data)
-        if not force and on_dev is not None and on_dev.get(rp) == len(data):
+        if not force and on_dev is not None and on_dev.get(rp) == digest:
             skipped += 1
-            continue  # unchanged on device (size match) — skip for fast iteration
+            continue  # identical content — skip for fast iteration
         b64 = base64.b64encode(data).decode()
         if len(b64) > batch_bytes:
             flush()
@@ -379,18 +388,21 @@ def push_tree(ser, local_root, remote_root, label, excl_dirs, excl_suffix,
 
 
 def device_tree(ser, roots=(SS_DST, EMBIT_DST)):
-    """One recursive os.stat pass; returns {path: size} for the given dst roots
-    (the /lib app+embit roots by default; /overlay/seedsigner for the overlay lane)."""
+    """Return {path: SHA-256 hex digest} for the given destination roots.
+
+    Defaults to /lib app+embit; the overlay lane uses /overlay/seedsigner.
+    """
     calls = "; ".join("_ls('%s')" % r for r in roots)
-    out = raw_exec(ser, "%s; print('LS_END')" % calls, timeout=30)
+    out = raw_exec(ser, "%s; print('LS_END')" % calls, timeout=90)
     on_dev = {}
     for line in out.splitlines():
         line = line.strip()
         if not line or line == "LS_END":
             continue
         try:
-            path, sz = line.rsplit(" ", 1)
-            on_dev[path] = int(sz)
+            path, digest = line.rsplit(" ", 1)
+            if len(digest) == 64 and all(c in "0123456789abcdef" for c in digest):
+                on_dev[path] = digest
         except ValueError:
             pass
     return on_dev
@@ -402,7 +414,7 @@ def verify(ser, expected, roots=(SS_DST, EMBIT_DST)):
     mismatch = [(p, expected[p], on_dev[p]) for p in expected
                 if p in on_dev and on_dev[p] != expected[p]]
     extra = [p for p in on_dev if p not in expected]
-    print("[verify] device has %d files; expected %d; missing %d; size-mismatch %d; extra %d"
+    print("[verify] device has %d files; expected %d; missing %d; hash-mismatch %d; extra %d"
           % (len(on_dev), len(expected), len(missing), len(mismatch), len(extra)))
     for p in missing[:20]:
         print("  MISSING ", p)
@@ -501,7 +513,7 @@ def main():
                     help="recursively remove the destination first (/lib app+embit, or "
                          "/overlay/seedsigner in --mode overlay)")
     ap.add_argument("--force", action="store_true",
-                    help="re-push every file even if its size matches the device")
+                    help="re-push every file even if its content hash matches the device")
     ap.add_argument("--resources", action="store_true",
                     help="also push src/seedsigner/resources (25MB; skipped by default)")
     ap.add_argument("--source", action="store_true",
@@ -562,9 +574,9 @@ def main():
         ss_excl = {"__pycache__"} if args.resources else {"__pycache__", "resources"}
 
         # Push with auto-retry against racy CDC truncation. Each round re-reads
-        # the device tree (device_tree), so push_tree's size-match skip re-pushes
-        # only the files that are missing or truncated; a dropped-chunk batch that
-        # raises is retried too. We proceed only once verify() is clean.
+        # the device tree (device_tree), so push_tree's hash-match skip re-pushes
+        # only missing or changed files. A dropped-chunk batch that raises is
+        # retried too. We proceed only once verify() is clean.
         ok = False
         expected = {}
         for attempt in range(1, PUSH_ATTEMPTS + 1):
