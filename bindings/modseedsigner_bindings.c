@@ -40,6 +40,8 @@ static uint32_t s_result_tail = 0;
 static uint32_t s_result_count = 0;
 // Shared by LVGL callbacks and the MicroPython task; never allocate while locked.
 static portMUX_TYPE s_result_lock = portMUX_INITIALIZER_UNLOCKED;
+// Match camera_entropy: a volatile function pointer prevents dead-store removal.
+static void *(*const volatile secure_memset)(void *, int, size_t) = memset;
 
 static void seedsigner_result_enqueue(seedsigner_result_kind_t kind, uint32_t index, const char *label) {
     seedsigner_result_event_t ev = {
@@ -641,6 +643,7 @@ static mp_obj_t mp_seedsigner_lvgl_poll_for_result(void) {
     }
 
     seedsigner_result_event_t ev = s_result_queue[s_result_head];
+    secure_memset(&s_result_queue[s_result_head], 0, sizeof(s_result_queue[s_result_head]));
     s_result_head = (s_result_head + 1) % SEEDSIGNER_RESULT_QUEUE_CAP;
     s_result_count--;
     portEXIT_CRITICAL(&s_result_lock);
@@ -667,6 +670,7 @@ static MP_DEFINE_CONST_FUN_OBJ_0(seedsigner_lvgl_poll_for_result_obj, mp_seedsig
 
 static mp_obj_t mp_seedsigner_lvgl_clear_result_queue(void) {
     portENTER_CRITICAL(&s_result_lock);
+    secure_memset(s_result_queue, 0, sizeof(s_result_queue));
     s_result_head = 0;
     s_result_tail = 0;
     s_result_count = 0;
