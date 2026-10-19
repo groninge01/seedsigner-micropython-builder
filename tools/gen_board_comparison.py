@@ -3,8 +3,8 @@
 
 Data-driven: edit BOARDS / STATUS / PRICE / CHIP / RATINGS / NOTES below and re-run
 to regenerate the image. Quality cells are shaded on a continuous green→red ramp so
-a mostly-green row reads as a strong board at a glance. No external services —
-just Pillow.
+a mostly-green row reads as a strong board at a glance. No external services, just
+Pillow.
 
     python3 tools/gen_board_comparison.py
 
@@ -14,21 +14,25 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 # ── Data (edit me) ──────────────────────────────────────────────────────────
-BOARDS = ["Waveshare 4.3", "Guition 4.3", "Waveshare 3.5", "Waveshare 5", "Waveshare S3 3.5B"]
+BOARDS = [
+    "Waveshare 4.3", "Guition 4.3", "Waveshare 3.5", "Elecrow 5", "Waveshare 5", "M5Stack Tab5",
+    "Waveshare S3 3.5B",
+]
 RECOMMENDED = {"Waveshare 4.3"}          # gets a ★ and is called out in the doc
 
 STATUS = {
     "Waveshare 4.3": "Supported", "Guition 4.3": "Supported", "Waveshare 3.5": "Supported",
-    "Waveshare 5": "Planned", "Waveshare S3 3.5B": "Under eval.",
+    "Elecrow 5": "In progress", "Waveshare 5": "In progress", "M5Stack Tab5": "In progress",
+    "Waveshare S3 3.5B": "Paused",
 }
 PRICE = {
     "Waveshare 4.3": "$43", "Guition 4.3": "$35", "Waveshare 3.5": "$38",
-    "Waveshare 5": "$53", "Waveshare S3 3.5B": "—",
+    "Elecrow 5": "$51", "Waveshare 5": "$53", "M5Stack Tab5": "$55", "Waveshare S3 3.5B": "n/a",
 }
 # Chip / platform. P4 = best (green); S3 = not yet assessed (gray).
 CHIP = {
     "Waveshare 4.3": "P4", "Guition 4.3": "P4", "Waveshare 3.5": "P4",
-    "Waveshare 5": "P4", "Waveshare S3 3.5B": "S3",
+    "Elecrow 5": "P4", "Waveshare 5": "P4", "M5Stack Tab5": "P4", "Waveshare S3 3.5B": "S3",
 }
 
 DIMENSIONS = ["Touchscreen", "Live preview", "Camera", "Reputation"]
@@ -37,25 +41,27 @@ DIMENSIONS = ["Touchscreen", "Live preview", "Camera", "Reputation"]
 BEST, GOOD, FAIR, POOR, NA = 4, 3, 2, 1, 0
 RATING_LABEL = {BEST: "Best", GOOD: "Good", FAIR: "Fair", POOR: "Poor", NA: "n/a"}
 
-# Some gray (NA) cells mean "unknown / unestablished", not "untested" — override the label.
+# Some gray (NA) cells mean "unknown / unestablished", not "untested"; override the label.
 NA_LABEL = {("Guition 4.3", "Reputation"): "Unknown"}
 
 RATINGS = {
     "Waveshare 4.3":      {"Touchscreen": BEST, "Live preview": BEST, "Camera": BEST, "Reputation": BEST},
     "Guition 4.3":        {"Touchscreen": BEST, "Live preview": BEST, "Camera": POOR, "Reputation": NA},
     "Waveshare 3.5":      {"Touchscreen": FAIR, "Live preview": FAIR, "Camera": FAIR, "Reputation": BEST},
+    "Elecrow 5":          {"Touchscreen": NA,   "Live preview": NA,   "Camera": NA,   "Reputation": NA},
     "Waveshare 5":        {"Touchscreen": NA,   "Live preview": NA,   "Camera": NA,   "Reputation": BEST},
+    "M5Stack Tab5":       {"Touchscreen": NA,   "Live preview": NA,   "Camera": NA,   "Reputation": NA},
     "Waveshare S3 3.5B":  {"Touchscreen": FAIR, "Live preview": NA,   "Camera": NA,   "Reputation": BEST},
 }
 
 TITLE = "SeedSigner ESP32 board comparison"
 NOTES = [
-    "Waveshare 5 has not been received yet — unevaluated (manufacturer reputation aside).",
+    "The 5\" boards are mid bring-up and not yet rated (Waveshare's established reputation aside).",
     "Touchscreen: the 3.5\" boards need a firmer, more deliberate press than the 4.3\" boards.",
     "Chip: the ESP32-P4 boards are the faster platform; the ESP32-S3's real-world performance is not yet assessed.",
     "Camera: Waveshare 4.3 (OV5647) > Waveshare 3.5 (same sensor, lower resolution) > Guition (OV02C10).",
-    "Reputation: Waveshare is well-established; Guition is new and largely unknown — unestablished, not known-bad.",
-    "Price is the bare-board list price (July 2026); a mostly-green row is the stronger board.",
+    "Reputation: Waveshare is well-established; Guition is new and largely unknown (unestablished, not known-bad).",
+    "Price is the list price with the camera included (no case or battery); a mostly-green row is the stronger board.",
 ]
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "img", "board-comparison.png")
@@ -63,7 +69,7 @@ OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "img", "board-c
 # ── Colors ──────────────────────────────────────────────────────────────────
 RED, YELLOW, GREEN = (208, 48, 45), (245, 191, 66), (43, 130, 52)
 GRAY, LIGHT, HEADER_BG, INK, MUTED, BG = (198, 202, 206), (245, 246, 248), (236, 238, 241), (33, 37, 41), (92, 99, 107), (255, 255, 255)
-STATUS_COLOR = {"Supported": GREEN, "Planned": YELLOW, "Under eval.": GRAY}
+STATUS_COLOR = {"Supported": GREEN, "In progress": YELLOW, "Paused": GRAY}
 
 
 def lerp(a, b, t):

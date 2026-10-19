@@ -11,11 +11,14 @@ Build orchestration repo for SeedSigner MicroPython firmware without maintaining
 | [ESP32-P4-WIFI6-Touch-LCD-4.3](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4.3.htm) | Waveshare | 4.3″ | [$43](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4.3.htm?sku=33875) | ✅ Supported · ⭐ **Recommended** |
 | [JC4880P443](https://www.aliexpress.us/item/3256809431944589.html) | Guition | 4.3″ | $35 | ✅ Supported |
 | [ESP32-P4-WIFI6-Touch-LCD-3.5](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-3.5.htm) | Waveshare | 3.5″ | [$38](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-3.5.htm?sku=33511) | ✅ Supported |
-| [ESP32-P4-WIFI6-Touch-LCD-5](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-5.htm) | Waveshare | 5″ | [$53](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-5.htm?sku=33763) | 🚧 Planned |
-| [ESP32-S3-Touch-LCD-3.5B](https://www.waveshare.com/esp32-s3-touch-lcd-3.5b.htm) | Waveshare | 3.5″ | n/a | 🔬 Under evaluation |
+| [CrowPanel Advance 5″ ESP32-P4](https://www.elecrow.com/crowpanel-advanced-5inch-esp32-p4-hmi-ai-display-800x480-ips-touch-screen-with-wifi-6.html) | Elecrow | 5″ | $51 | 🛠️ **Bring-up in progress** |
+| [ESP32-P4-WIFI6-Touch-LCD-5](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-5.htm) | Waveshare | 5″ | [$53](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-5.htm?sku=33763) | 🛠️ **Bring-up in progress** |
+| [Tab5](https://shop.m5stack.com/products/m5stack-tab5-iot-development-kit-esp32-p4) | M5Stack | 5″ | $55 | 🛠️ **Bring-up in progress** |
+| [ESP32-S3-Touch-LCD-3.5B](https://www.waveshare.com/esp32-s3-touch-lcd-3.5b.htm) | Waveshare | 3.5″ | n/a | ⏸️ Paused |
 
-Prices are list prices as of July 2026. See **[Board hardware details](docs/supported-hardware.md)**
-for per-board specs, enclosure options, and the display / performance differences.
+Prices are list prices for the version that includes the camera, checked October 2026 (the
+Guition's in July 2026). See **[Board hardware details](docs/supported-hardware.md)** for per-board
+specs, enclosure options, and the display / performance differences.
 
 **Chip revision matters.** ESP32-P4 boards switched to chip revision v3.x silicon in 2026, and v3.x
 and the older v1.x chips cannot run the same firmware image. See
@@ -371,6 +374,7 @@ make dist             BOARD=WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_43
 |---|---|
 | `WAVESHARE_ESP32_S3_TOUCH_LCD_35B`, `WAVESHARE_ESP32_S3_TOUCH_LCD_35` | `esp32s3` |
 | `WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_35`, `WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_43` | `esp32p4` |
+| `GUITION_JC4880P443` | `esp32p4` |
 
 ### ESP32-P4 chip revision
 
