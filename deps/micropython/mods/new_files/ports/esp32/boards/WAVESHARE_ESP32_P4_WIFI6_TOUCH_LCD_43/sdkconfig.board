@@ -2,6 +2,10 @@
 # esp-board-common's sdkconfig.defaults via BOARD_CONFIG_DIR.
 # This file contains only MicroPython-specific additions and overrides.
 
+# Target the v3.x silicon used by current Waveshare 4.3-inch boards.
+# Requires ESP-IDF >= 5.5.3; v1.x silicon needs a separate build with this enabled.
+CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n
+
 # Keep boot strict during bring-up.
 CONFIG_SPIRAM_MEMTEST=y
 CONFIG_SPIRAM_IGNORE_NOTFOUND=n

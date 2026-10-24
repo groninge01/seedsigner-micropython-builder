@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ARG ESP_IDF_REF=v5.5.1
+ARG ESP_IDF_REF=v5.5.4
 ENV IDF_TOOLS_PATH=/opt/espressif
 
 RUN apt-get update && apt-get install -y \
@@ -25,7 +25,7 @@ RUN mkdir -p /opt/toolchains "$IDF_TOOLS_PATH"
 RUN git clone -b ${ESP_IDF_REF} --recursive https://github.com/espressif/esp-idf.git /opt/toolchains/esp-idf && \
     cd /opt/toolchains/esp-idf && \
     export IDF_TOOLS_PATH=/opt/espressif && \
-    ./install.sh esp32s3 && \
+    ./install.sh esp32s3,esp32p4 && \
     . ./export.sh && \
     python3 tools/idf_tools.py install riscv32-esp-elf-gdb
 
