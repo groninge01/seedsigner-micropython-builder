@@ -149,8 +149,20 @@ The `Dockerfile` has no `COPY`/`ADD` (it clones everything), so build it
 `build/`) as a build context:
 
 ```bash
-IDF_REF=v5.5.1
+IDF_REF=v5.5.4
 docker build --build-arg ESP_IDF_REF="$IDF_REF" -t ss-mpb-base:local - < Dockerfile
+```
+
+The Waveshare P4 4.3-inch configuration targets **ESP32-P4 revision v3.x**
+(`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n`), requiring ESP-IDF 5.5.3 or newer.
+Revision v1.x chips require a separate build with that option enabled; do not
+force-flash a v3.x image onto older silicon.
+
+Use the rebuilt local image before publishing updated registry images:
+
+```bash
+make docker-build-all BOARD=WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_43 IMAGE=ss-mpb-base:local
+make dist BOARD=WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_43
 ```
 
 ### 2. Tag for all three registries
@@ -214,7 +226,7 @@ throwaway Docker config so nothing persists in `~/.docker/config.json`:
 
 ```bash
 export DOCKER_CONFIG="$(mktemp -d)"          # throwaway, not ~/.docker
-IDF_REF=v5.5.1                                # match the build above
+IDF_REF=v5.5.4                                # match the build above
 TAG="idf-${IDF_REF}"
 
 # --- GHCR (primary) ---
